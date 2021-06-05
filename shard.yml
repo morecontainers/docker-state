@@ -1,12 +1,12 @@
 name: docker-state
-version: 0.1.0
+version: 1.0.0
 
 authors:
   - Henrik Holst <hholst80@gmail.com>
 
 targets:
-  docker-healthz:
-    main: src/docker-healthz.cr
+  docker-state:
+    main: src/docker-state.cr
 
 dependencies:
   json_mapping:
@@ -15,5 +15,6 @@ dependencies:
     github: tbrand/router.cr
   docker:
     github: hholst80/docker.cr
+    branch: master
 
 crystal: ">= 1.0.0"
