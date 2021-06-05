@@ -12,9 +12,8 @@ dependencies:
   json_mapping:
     github: crystal-lang/json_mapping.cr
   router:
-    github: tbrand/router.cr
+    github: hholst80/router.cr
   docker:
     github: hholst80/docker.cr
-    branch: master
 
 crystal: ">= 1.0.0"
