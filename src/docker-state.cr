@@ -37,24 +37,31 @@ end
 class WebServer
   include Router
 
-  def draw_routes
-    get "/:id" do |context, params|
-      id = params["id"]
-      res = Docker.client.get "/v1.30/containers/#{id}/json"
-      if !res.status.success?
-        context.response.status_code = res.status_code
-        context.response.print res.body
-        context
-      else
-        state = State.from_json res.body, root: "State"
-        unless state.running?
-          context.response.status_code = 500
-        end
+  def handler(method, context, params) : HTTP::Server::Context
+    id = params["id"]
+    response = Docker.client.get "/v1.30/containers/#{id}/json"
+    if !response.status.success?
+      context.response.status_code = response.status_code
+      if method == "get"
+        context.response.print response.body
+      end
+      context
+    else
+      state = State.from_json response.body, root: "State"
+      unless state.running?
+        context.response.status_code = 404
+      end
+      if method == "get"
         state.to_json context.response
         context.response.print "\n"
-        context
       end
+      context
     end
+  end
+
+  def draw_routes
+    get "/:id" { |context, params| handler("get", context, params) }
+    head "/:id" { |context, params| handler("head", context, params) }
   end
 
   def run
