@@ -1,0 +1,19 @@
+name: docker-state
+version: 0.9.0
+
+authors:
+  - Henrik Holst <hholst80@gmail.com>
+
+targets:
+  docker-state:
+    main: src/docker-state.cr
+
+dependencies:
+  json_mapping:
+    github: crystal-lang/json_mapping.cr
+  router:
+    github: hholst80/router.cr
+  docker:
+    github: hholst80/docker.cr
+
+crystal: ">= 1.0.0"
