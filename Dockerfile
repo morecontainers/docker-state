@@ -4,6 +4,6 @@ COPY       . .
 RUN        shards build --production --static
 
 FROM       scratch
-EXPOSE     8080
+EXPOSE     3000
 COPY       --from=0 /usr/local/bin/docker-state /docker-state
 ENTRYPOINT ["/docker-state"]
