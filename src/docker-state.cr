@@ -1,7 +1,6 @@
-require "router"
+require "http/server"
 require "json"
 require "docker"
-require "socket"
 
 LISTEN_PORT = 3000
 
@@ -34,44 +33,39 @@ struct State
   end
 end
 
-class WebServer
-  include Router
-
-  def handler(method, context, params) : HTTP::Server::Context
-    id = params["id"]
-    response = Docker.client.get "/v1.30/containers/#{id}/json"
-    if !response.status.success?
-      context.response.status_code = response.status_code
-      if method == "get"
-        context.response.print response.body
-      end
-      context
-    else
+server = HTTP::Server.new do |context|
+  method = context.request.method.upcase
+  if method != "GET" && method != "HEAD"
+    raise Exception.new "Invalid method #{method}"
+  end
+  if /\/[a-z0-9]*/ =~ context.request.resource
+    id = context.request.resource.delete_at(0)
+  else
+    raise Exception.new("invalid path: #{context.request.resource}")
+  end
+  response = Docker.client.get "/v1.30/containers/#{id}/json"
+  if response.status.success?
+    case method
+    when "GET"
       state = State.from_json response.body, root: "State"
-      unless state.running?
-        context.response.status_code = 404
-      end
-      if method == "get"
-        state.to_json context.response
-        context.response.print "\n"
-      end
-      context
+      context.response.status_code = state.running? ? 200 : 404
+      context.response.content_type = "application/json"
+      state.to_json context.response
+      context.response.print "\n"
+    when "HEAD"
+      state = State.from_json response.body, root: "State"
+      context.response.status_code = state.running? ? 200 : 404
+    end
+  else
+    context.response.status_code = response.status_code
+    if method == "GET"
+      context.response.content_type = response.content_type.not_nil!
+      context.response.print response.body
     end
   end
-
-  def draw_routes
-    get "/:id" { |context, params| handler("get", context, params) }
-    head "/:id" { |context, params| handler("head", context, params) }
-  end
-
-  def run
-    server = HTTP::Server.new(route_handler)
-    address = server.bind_tcp "0.0.0.0", LISTEN_PORT
-    puts "Listening on http://#{address}"
-    server.listen
-  end
+  puts "#{method} /#{id} #{context.response.status_code}"
 end
 
-web_server = WebServer.new
-web_server.draw_routes
-web_server.run
+address = server.bind_tcp "0.0.0.0", 3000
+puts "Listening on http://#{address}"
+server.listen

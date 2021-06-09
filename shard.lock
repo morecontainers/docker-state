@@ -8,11 +8,3 @@ shards:
     git: https://github.com/crystal-lang/json_mapping.cr.git
     version: 0.1.1
 
-  radix:
-    git: https://github.com/luislavena/radix.git
-    version: 0.4.1
-
-  router:
-    git: https://github.com/hholst80/router.cr.git
-    version: 0.3.0
-
