@@ -1,9 +1,13 @@
-FROM       crystallang/crystal:1.0.0
+FROM       crystallang/crystal:1.2.2
 WORKDIR    /usr/local
 COPY       . .
 RUN        shards build --production --static
 
-FROM       scratch
+FROM       crystallang/crystal:1.2.2-alpine AS development
+RUN        apk add bash zsh fish git git-lfs zsh-vcs vim curl httpie
+CMD        ["sleep","inf"]
+
+FROM       scratch AS production
 EXPOSE     3000
 COPY       --from=0 /usr/local/bin/docker-state /docker-state
 ENTRYPOINT ["/docker-state"]
