@@ -17,3 +17,4 @@ services:
       - HOME
     volumes:
       - /home:/home
+      - /run/user/1000/docker.sock:/var/run/docker.sock
