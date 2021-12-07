@@ -37,9 +37,10 @@ end
 class WebServer
   include Router
 
-  def handler(method, context, params) : HTTP::Server::Context
+  def container_handler(method, context, params) : HTTP::Server::Context
     id = params["id"]
     response = Docker.client.get "/v1.30/containers/#{id}/json"
+    context.response.content_type = "application/json"
     if !response.status.success?
       context.response.status_code = response.status_code
       if method == "get"
@@ -59,13 +60,54 @@ class WebServer
     end
   end
 
+  def compose_handler(method, context, params) : HTTP::Server::Context
+    project = params["project"]
+    response = Docker.client.get "/v1.30/containers/json?all=true&filters={\"label\":[\"com.docker.compose.project=#{project}\"]}"
+    context.response.content_type = "application/json"   # NOTE: This does not seem to work
+    if !response.status.success?
+      context.response.status_code = response.status_code
+      if method == "get"
+        context.response.print response.body
+      end
+    else
+      stackIds = Array(String).new
+      Array(JSON::Any).from_json response.body do |el|
+        stackIds.push el["Id"].as_s
+      end
+      if stackIds.empty?
+        context.response.status_code = 404
+      else
+        states = Hash(String, State).new
+        stackIds.each do |id|
+          response = Docker.client.get "/v1.30/containers/#{id}/json"
+          name = (String.from_json response.body, root: "Name").delete("/")
+          # name = name.delete("/")
+          state = State.from_json response.body, root: "State"
+          states[name] = state
+        end
+        if method == "get"
+          states.to_json context.response
+          context.response.print "\n"
+        end
+        all_ok = states.all? {|_, state| state.running? }
+        context.response.status_code = all_ok ? 200 : 404
+      end
+    end
+    context
+  end
+
   def draw_routes
-    get "/:id" { |context, params| handler("get", context, params) }
-    head "/:id" { |context, params| handler("head", context, params) }
+    get "/compose/:project" { |context, params| compose_handler("get", context, params) }
+    head "/compose/:project" { |context, params| compose_handler("head", context, params) }
+    # TODO: Move container endpoint to /container/:id
+    # get "/container/:id" { |context, params| container_handler("get", context, params) }
+    # head "/container/:id" { |context, params| container_handler("head", context, params) }
+    get "/:id" { |context, params| container_handler("get", context, params) }
+    head "/:id" { |context, params| container_handler("head", context, params) }
   end
 
   def run
-    server = HTTP::Server.new(route_handler)
+    server = HTTP::Server.new([HTTP::LogHandler.new, route_handler])
     address = server.bind_tcp "0.0.0.0", LISTEN_PORT
     puts "Listening on http://#{address}"
     server.listen
