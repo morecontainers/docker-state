@@ -1,0 +1,19 @@
+version: '2.4'
+services:
+  prod:
+    image: morecontainers/docker-state:${TAG:-latest}
+    build:
+      context: .
+      target: production
+  dev:
+    init: true
+    container_name: docker-state
+    hostname: docker-state
+    build: 
+      context: .
+      target: development
+    working_dir: $PWD
+    environment:
+      - HOME
+    volumes:
+      - /home:/home
