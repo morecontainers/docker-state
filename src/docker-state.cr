@@ -81,16 +81,15 @@ class WebServer
         stackIds.each do |id|
           response = Docker.client.get "/v1.30/containers/#{id}/json"
           name = (String.from_json response.body, root: "Name").delete("/")
-          # name = name.delete("/")
           state = State.from_json response.body, root: "State"
           states[name] = state
         end
+        all_ok = states.all? {|_, state| state.running? }
+        context.response.status_code = all_ok ? 200 : 404
         if method == "get"
           states.to_json context.response
           context.response.print "\n"
         end
-        all_ok = states.all? {|_, state| state.running? }
-        context.response.status_code = all_ok ? 200 : 404
       end
     end
     context
