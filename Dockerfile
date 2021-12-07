@@ -1,7 +1,7 @@
 FROM       crystallang/crystal:1.2.2
 WORKDIR    /usr/local
 COPY       . .
-RUN        shards build --production --static
+RUN        shards build --release --production --static
 
 FROM       crystallang/crystal:1.2.2-alpine AS development
 RUN        apk add bash zsh fish git git-lfs zsh-vcs vim curl httpie
