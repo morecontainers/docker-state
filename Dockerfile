@@ -1,4 +1,4 @@
-FROM       crystallang/crystal:1.2.2
+FROM       crystallang/crystal:1.2.2-alpine
 WORKDIR    /usr/local
 COPY       . .
 RUN        shards build --release --production --static --no-debug
